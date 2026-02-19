@@ -92,3 +92,5 @@ Simply open `index.html` in any modern web browser. No installation, no configur
 ## License
 
 This work is offered freely to all who seek knowledge. Share it, modify it, and let it serve the cause of scientific enlightenment.
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
