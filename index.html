@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Periodic Table</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Cormorant+SC:wght@300;400;500&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0b;
+    --panel-bg: #111110;
+    --gold: #b8965a;
+    --gold-light: #d4af72;
+    --gold-dim: #6b5535;
+    --text: #d8cfc0;
+    --text-dim: #7a7060;
+    --text-bright: #f0e6d2;
+    --border-subtle: rgba(184, 150, 90, 0.1);
+    /* Brighter category palette — readable but still refined */
+    --alkali: #e07a7a;
+    --alkaline: #e0a060;
+    --transition: #5ab8d8;
+    --post: #6acfda;
+    --metalloid: #6acfba;
+    --nonmetal: #5ece80;
+    --halogen: #e8c040;
+    --noble: #b48ee8;
+    --lanthanide: #e080b8;
+    --actinide: #e08080;
+    --unknown: #98a8bc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Cormorant Garamond', serif;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: auto;
+    background-image:
+      radial-gradient(ellipse at 30% 10%, rgba(184,150,90,0.025) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 85%, rgba(184,150,90,0.015) 0%, transparent 50%);
+  }
+
+  header {
+    text-align: center;
+    padding: 36px 20px 10px;
+    position: relative;
+  }
+
+  header h1 {
+    font-family: 'Cormorant SC', serif;
+    font-weight: 300;
+    font-size: clamp(16px, 2.4vw, 28px);
+    letter-spacing: 0.55em;
+    color: var(--gold-light);
+    text-transform: uppercase;
+    text-shadow: none;
+  }
+
+  header p {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  .scan-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    margin: 18px auto;
+    max-width: 500px;
+    opacity: 0.6;
+  }
+
+  /* TABLE LAYOUT */
+  .table-wrapper {
+    padding: 10px 12px 20px;
+    overflow-x: auto;
+  }
+
+  .periodic-table {
+    display: grid;
+    grid-template-columns: repeat(18, 52px);
+    grid-template-rows: repeat(10, 52px);
+    gap: 3px;
+    margin: 0 auto;
+    width: fit-content;
+  }
+
+  /* ELEMENT CELLS */
+  .el {
+    position: relative;
+    border: 1px solid rgba(184,150,90,0.07);
+    border-radius: 1px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    background: rgba(17,16,14,0.92);
+    overflow: hidden;
+  }
+
+  .el::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    transition: opacity 0.18s;
+  }
+
+  .el:hover::before { opacity: 0.14; }
+
+  .el:hover {
+    transform: scale(1.13);
+    z-index: 10;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.6), 0 0 0 1px var(--el-color, var(--gold));
+    border-color: var(--el-color, var(--gold));
+    background: rgba(22,20,16,0.98);
+  }
+
+  .el .num {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 8px;
+    color: var(--text-dim);
+    line-height: 1;
+    align-self: flex-start;
+    padding-left: 4px;
+    padding-top: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  .el .sym {
+    font-family: 'Cormorant SC', serif;
+    font-weight: 400;
+    font-size: 17px;
+    color: var(--el-color, var(--text-bright));
+    line-height: 1;
+    text-shadow: none;
+    letter-spacing: 0.03em;
+  }
+
+  .el .name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 6px;
+    letter-spacing: 0.06em;
+    color: rgba(180,165,140,0.4);
+    line-height: 1;
+    margin-top: 1px;
+  }
+
+  /* Color tints per category */
+  .el::before { background: var(--el-color, #b8965a); }
+  .el { border-color: rgba(184,150,90,0.07); }
+
+  /* TOOLTIP / ATOM DISPLAY */
+  #atom-panel {
+    position: fixed;
+    top: 50%;
+    right: 28px;
+    transform: translateY(-50%);
+    width: 258px;
+    background: rgba(13,13,11,0.98);
+    border: 1px solid rgba(184,150,90,0.2);
+    border-radius: 1px;
+    padding: 22px 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 100;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(184,150,90,0.04);
+  }
+
+  #atom-panel.visible { opacity: 1; }
+
+  #atom-panel .panel-symbol {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 72px;
+    line-height: 1;
+    text-align: center;
+    color: var(--panel-color, var(--gold-light));
+    text-shadow: none;
+    letter-spacing: -0.02em;
+  }
+
+  #atom-panel .panel-name {
+    text-align: center;
+    font-family: 'Cormorant SC', serif;
+    font-weight: 300;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  #atom-panel .panel-num {
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--gold-dim);
+    margin-bottom: 14px;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(184,150,90,0.25), transparent);
+    margin: 10px 0;
+  }
+
+  /* ATOM DIAGRAM */
+  #atom-canvas-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0;
+  }
+
+  #atom-canvas {
+    border-radius: 50%;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(184,150,90,0.06);
+  }
+  .stat-row .label {
+    font-family: 'Cormorant SC', serif;
+    font-weight: 300;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .stat-row .val {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    color: var(--text-bright);
+  }
+
+  .category-badge {
+    margin-top: 12px;
+    text-align: center;
+    font-family: 'Cormorant SC', serif;
+    font-weight: 300;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid rgba(184,150,90,0.2);
+    color: var(--gold);
+    opacity: 0.85;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    justify-content: center;
+    padding: 12px 20px 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Cormorant SC', serif;
+    font-weight: 300;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .legend-dot {
+    width: 6px; height: 6px;
+    border-radius: 0;
+  }
+
+  /* EMPTY SPACER */
+  .spacer { grid-column: span 1; }
+
+  /* Lanthanide / Actinide label rows */
+  .series-label {
+    grid-column: 1 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 6px;
+    font-family: 'Cormorant SC', serif;
+    font-weight: 300;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Periodic Table of Elements</h1>
+  <p>Dmitri Mendeleev &nbsp;·&nbsp; 1869</p>
+  <div class="scan-line"></div>
+</header>
+
+<div class="table-wrapper">
+  <div class="periodic-table" id="pt"></div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<div id="atom-panel">
+  <div class="panel-symbol" id="p-sym">H</div>
+  <div class="panel-name" id="p-name">Hydrogen</div>
+  <div class="panel-num" id="p-num">Z = 1 · A = 1</div>
+  <div class="divider"></div>
+  <div id="atom-canvas-wrap">
+    <canvas id="atom-canvas" width="180" height="180"></canvas>
+  </div>
+  <div class="divider"></div>
+  <div class="stat-row"><span class="label">ATOMIC MASS</span><span class="val" id="p-mass">—</span></div>
+  <div class="stat-row"><span class="label">ELECTRON CFG</span><span class="val" id="p-config">—</span></div>
+  <div class="stat-row"><span class="label">ELECTRONEGATIVITY</span><span class="val" id="p-en">—</span></div>
+  <div class="stat-row"><span class="label">STATE AT STP</span><span class="val" id="p-state">—</span></div>
+  <div class="category-badge" id="p-cat">—</div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const CATEGORIES = {
+  'alkali':        { label: 'Alkali Metal',       color: '#e07a7a' },
+  'alkaline':      { label: 'Alkaline Earth',     color: '#e0a060' },
+  'transition':    { label: 'Transition Metal',   color: '#5ab8d8' },
+  'post':          { label: 'Post-transition',    color: '#6acfda' },
+  'metalloid':     { label: 'Metalloid',          color: '#6acfba' },
+  'nonmetal':      { label: 'Reactive Nonmetal',  color: '#5ece80' },
+  'halogen':       { label: 'Halogen',            color: '#e8c040' },
+  'noble':         { label: 'Noble Gas',          color: '#b48ee8' },
+  'lanthanide':    { label: 'Lanthanide',         color: '#e080b8' },
+  'actinide':      { label: 'Actinide',           color: '#e08080' },
+  'unknown':       { label: 'Unknown',            color: '#98a8bc' },
+};
+
+// [symbol, name, Z, mass, category, period, group, electronegativity, state, electronConfig]
+// state: G=gas, L=liquid, S=solid, U=unknown
+const ELEMENTS = [
+  ['H','Hydrogen',1,1.008,'nonmetal',1,1,2.20,'G','1s¹'],
+  ['He','Helium',2,4.003,'noble',1,18,null,'G','1s²'],
+  ['Li','Lithium',3,6.941,'alkali',2,1,0.98,'S','[He]2s¹'],
+  ['Be','Beryllium',4,9.012,'alkaline',2,2,1.57,'S','[He]2s²'],
+  ['B','Boron',5,10.81,'metalloid',2,13,2.04,'S','[He]2s²2p¹'],
+  ['C','Carbon',6,12.01,'nonmetal',2,14,2.55,'S','[He]2s²2p²'],
+  ['N','Nitrogen',7,14.01,'nonmetal',2,15,3.04,'G','[He]2s²2p³'],
+  ['O','Oxygen',8,16.00,'nonmetal',2,16,3.44,'G','[He]2s²2p⁴'],
+  ['F','Fluorine',9,19.00,'halogen',2,17,3.98,'G','[He]2s²2p⁵'],
+  ['Ne','Neon',10,20.18,'noble',2,18,null,'G','[He]2s²2p⁶'],
+  ['Na','Sodium',11,22.99,'alkali',3,1,0.93,'S','[Ne]3s¹'],
+  ['Mg','Magnesium',12,24.31,'alkaline',3,2,1.31,'S','[Ne]3s²'],
+  ['Al','Aluminium',13,26.98,'post',3,13,1.61,'S','[Ne]3s²3p¹'],
+  ['Si','Silicon',14,28.09,'metalloid',3,14,1.90,'S','[Ne]3s²3p²'],
+  ['P','Phosphorus',15,30.97,'nonmetal',3,15,2.19,'S','[Ne]3s²3p³'],
+  ['S','Sulfur',16,32.07,'nonmetal',3,16,2.58,'S','[Ne]3s²3p⁴'],
+  ['Cl','Chlorine',17,35.45,'halogen',3,17,3.16,'G','[Ne]3s²3p⁵'],
+  ['Ar','Argon',18,39.95,'noble',3,18,null,'G','[Ne]3s²3p⁶'],
+  ['K','Potassium',19,39.10,'alkali',4,1,0.82,'S','[Ar]4s¹'],
+  ['Ca','Calcium',20,40.08,'alkaline',4,2,1.00,'S','[Ar]4s²'],
+  ['Sc','Scandium',21,44.96,'transition',4,3,1.36,'S','[Ar]3d¹4s²'],
+  ['Ti','Titanium',22,47.87,'transition',4,4,1.54,'S','[Ar]3d²4s²'],
+  ['V','Vanadium',23,50.94,'transition',4,5,1.63,'S','[Ar]3d³4s²'],
+  ['Cr','Chromium',24,52.00,'transition',4,6,1.66,'S','[Ar]3d⁵4s¹'],
+  ['Mn','Manganese',25,54.94,'transition',4,7,1.55,'S','[Ar]3d⁵4s²'],
+  ['Fe','Iron',26,55.85,'transition',4,8,1.83,'S','[Ar]3d⁶4s²'],
+  ['Co','Cobalt',27,58.93,'transition',4,9,1.88,'S','[Ar]3d⁷4s²'],
+  ['Ni','Nickel',28,58.69,'transition',4,10,1.91,'S','[Ar]3d⁸4s²'],
+  ['Cu','Copper',29,63.55,'transition',4,11,1.90,'S','[Ar]3d¹⁰4s¹'],
+  ['Zn','Zinc',30,65.38,'transition',4,12,1.65,'S','[Ar]3d¹⁰4s²'],
+  ['Ga','Gallium',31,69.72,'post',4,13,1.81,'S','[Ar]3d¹⁰4s²4p¹'],
+  ['Ge','Germanium',32,72.63,'metalloid',4,14,2.01,'S','[Ar]3d¹⁰4s²4p²'],
+  ['As','Arsenic',33,74.92,'metalloid',4,15,2.18,'S','[Ar]3d¹⁰4s²4p³'],
+  ['Se','Selenium',34,78.97,'nonmetal',4,16,2.55,'S','[Ar]3d¹⁰4s²4p⁴'],
+  ['Br','Bromine',35,79.90,'halogen',4,17,2.96,'L','[Ar]3d¹⁰4s²4p⁵'],
+  ['Kr','Krypton',36,83.80,'noble',4,18,3.00,'G','[Ar]3d¹⁰4s²4p⁶'],
+  ['Rb','Rubidium',37,85.47,'alkali',5,1,0.82,'S','[Kr]5s¹'],
+  ['Sr','Strontium',38,87.62,'alkaline',5,2,0.95,'S','[Kr]5s²'],
+  ['Y','Yttrium',39,88.91,'transition',5,3,1.22,'S','[Kr]4d¹5s²'],
+  ['Zr','Zirconium',40,91.22,'transition',5,4,1.33,'S','[Kr]4d²5s²'],
+  ['Nb','Niobium',41,92.91,'transition',5,5,1.6,'S','[Kr]4d⁴5s¹'],
+  ['Mo','Molybdenum',42,95.95,'transition',5,6,2.16,'S','[Kr]4d⁵5s¹'],
+  ['Tc','Technetium',43,97,'transition',5,7,1.9,'S','[Kr]4d⁵5s²'],
+  ['Ru','Ruthenium',44,101.1,'transition',5,8,2.2,'S','[Kr]4d⁷5s¹'],
+  ['Rh','Rhodium',45,102.9,'transition',5,9,2.28,'S','[Kr]4d⁸5s¹'],
+  ['Pd','Palladium',46,106.4,'transition',5,10,2.2,'S','[Kr]4d¹⁰'],
+  ['Ag','Silver',47,107.9,'transition',5,11,1.93,'S','[Kr]4d¹⁰5s¹'],
+  ['Cd','Cadmium',48,112.4,'transition',5,12,1.69,'S','[Kr]4d¹⁰5s²'],
+  ['In','Indium',49,114.8,'post',5,13,1.78,'S','[Kr]4d¹⁰5s²5p¹'],
+  ['Sn','Tin',50,118.7,'post',5,14,1.96,'S','[Kr]4d¹⁰5s²5p²'],
+  ['Sb','Antimony',51,121.8,'metalloid',5,15,2.05,'S','[Kr]4d¹⁰5s²5p³'],
+  ['Te','Tellurium',52,127.6,'metalloid',5,16,2.1,'S','[Kr]4d¹⁰5s²5p⁴'],
+  ['I','Iodine',53,126.9,'halogen',5,17,2.66,'S','[Kr]4d¹⁰5s²5p⁵'],
+  ['Xe','Xenon',54,131.3,'noble',5,18,2.6,'G','[Kr]4d¹⁰5s²5p⁶'],
+  ['Cs','Cesium',55,132.9,'alkali',6,1,0.79,'S','[Xe]6s¹'],
+  ['Ba','Barium',56,137.3,'alkaline',6,2,0.89,'S','[Xe]6s²'],
+  ['La','Lanthanum',57,138.9,'lanthanide',6,3,1.1,'S','[Xe]5d¹6s²'],
+  ['Ce','Cerium',58,140.1,'lanthanide',6,null,1.12,'S','[Xe]4f¹5d¹6s²'],
+  ['Pr','Praseodymium',59,140.9,'lanthanide',6,null,1.13,'S','[Xe]4f³6s²'],
+  ['Nd','Neodymium',60,144.2,'lanthanide',6,null,1.14,'S','[Xe]4f⁴6s²'],
+  ['Pm','Promethium',61,145,'lanthanide',6,null,null,'S','[Xe]4f⁵6s²'],
+  ['Sm','Samarium',62,150.4,'lanthanide',6,null,1.17,'S','[Xe]4f⁶6s²'],
+  ['Eu','Europium',63,152.0,'lanthanide',6,null,null,'S','[Xe]4f⁷6s²'],
+  ['Gd','Gadolinium',64,157.3,'lanthanide',6,null,1.2,'S','[Xe]4f⁷5d¹6s²'],
+  ['Tb','Terbium',65,158.9,'lanthanide',6,null,null,'S','[Xe]4f⁹6s²'],
+  ['Dy','Dysprosium',66,162.5,'lanthanide',6,null,1.22,'S','[Xe]4f¹⁰6s²'],
+  ['Ho','Holmium',67,164.9,'lanthanide',6,null,1.23,'S','[Xe]4f¹¹6s²'],
+  ['Er','Erbium',68,167.3,'lanthanide',6,null,1.24,'S','[Xe]4f¹²6s²'],
+  ['Tm','Thulium',69,168.9,'lanthanide',6,null,1.25,'S','[Xe]4f¹³6s²'],
+  ['Yb','Ytterbium',70,173.0,'lanthanide',6,null,null,'S','[Xe]4f¹⁴6s²'],
+  ['Lu','Lutetium',71,175.0,'lanthanide',6,3,1.27,'S','[Xe]4f¹⁴5d¹6s²'],
+  ['Hf','Hafnium',72,178.5,'transition',6,4,1.3,'S','[Xe]4f¹⁴5d²6s²'],
+  ['Ta','Tantalum',73,180.9,'transition',6,5,1.5,'S','[Xe]4f¹⁴5d³6s²'],
+  ['W','Tungsten',74,183.8,'transition',6,6,2.36,'S','[Xe]4f¹⁴5d⁴6s²'],
+  ['Re','Rhenium',75,186.2,'transition',6,7,1.9,'S','[Xe]4f¹⁴5d⁵6s²'],
+  ['Os','Osmium',76,190.2,'transition',6,8,2.2,'S','[Xe]4f¹⁴5d⁶6s²'],
+  ['Ir','Iridium',77,192.2,'transition',6,9,2.2,'S','[Xe]4f¹⁴5d⁷6s²'],
+  ['Pt','Platinum',78,195.1,'transition',6,10,2.28,'S','[Xe]4f¹⁴5d⁹6s¹'],
+  ['Au','Gold',79,197.0,'transition',6,11,2.54,'S','[Xe]4f¹⁴5d¹⁰6s¹'],
+  ['Hg','Mercury',80,200.6,'transition',6,12,2.0,'L','[Xe]4f¹⁴5d¹⁰6s²'],
+  ['Tl','Thallium',81,204.4,'post',6,13,1.62,'S','[Xe]4f¹⁴5d¹⁰6s²6p¹'],
+  ['Pb','Lead',82,207.2,'post',6,14,2.33,'S','[Xe]4f¹⁴5d¹⁰6s²6p²'],
+  ['Bi','Bismuth',83,208.9,'post',6,15,2.02,'S','[Xe]4f¹⁴5d¹⁰6s²6p³'],
+  ['Po','Polonium',84,209,'metalloid',6,16,2.0,'S','[Xe]4f¹⁴5d¹⁰6s²6p⁴'],
+  ['At','Astatine',85,210,'halogen',6,17,2.2,'S','[Xe]4f¹⁴5d¹⁰6s²6p⁵'],
+  ['Rn','Radon',86,222,'noble',6,18,null,'G','[Xe]4f¹⁴5d¹⁰6s²6p⁶'],
+  ['Fr','Francium',87,223,'alkali',7,1,0.7,'S','[Rn]7s¹'],
+  ['Ra','Radium',88,226,'alkaline',7,2,0.9,'S','[Rn]7s²'],
+  ['Ac','Actinium',89,227,'actinide',7,3,1.1,'S','[Rn]6d¹7s²'],
+  ['Th','Thorium',90,232.0,'actinide',7,null,1.3,'S','[Rn]6d²7s²'],
+  ['Pa','Protactinium',91,231.0,'actinide',7,null,1.5,'S','[Rn]5f²6d¹7s²'],
+  ['U','Uranium',92,238.0,'actinide',7,null,1.38,'S','[Rn]5f³6d¹7s²'],
+  ['Np','Neptunium',93,237,'actinide',7,null,1.36,'S','[Rn]5f⁴6d¹7s²'],
+  ['Pu','Plutonium',94,244,'actinide',7,null,1.28,'S','[Rn]5f⁶7s²'],
+  ['Am','Americium',95,243,'actinide',7,null,1.13,'S','[Rn]5f⁷7s²'],
+  ['Cm','Curium',96,247,'actinide',7,null,1.28,'S','[Rn]5f⁷6d¹7s²'],
+  ['Bk','Berkelium',97,247,'actinide',7,null,1.3,'S','[Rn]5f⁹7s²'],
+  ['Cf','Californium',98,251,'actinide',7,null,1.3,'S','[Rn]5f¹⁰7s²'],
+  ['Es','Einsteinium',99,252,'actinide',7,null,1.3,'S','[Rn]5f¹¹7s²'],
+  ['Fm','Fermium',100,257,'actinide',7,null,1.3,'U','[Rn]5f¹²7s²'],
+  ['Md','Mendelevium',101,258,'actinide',7,null,1.3,'U','[Rn]5f¹³7s²'],
+  ['No','Nobelium',102,259,'actinide',7,null,1.3,'U','[Rn]5f¹⁴7s²'],
+  ['Lr','Lawrencium',103,266,'actinide',7,3,null,'U','[Rn]5f¹⁴7s²7p¹'],
+  ['Rf','Rutherfordium',104,267,'transition',7,4,null,'U','[Rn]5f¹⁴6d²7s²'],
+  ['Db','Dubnium',105,270,'transition',7,5,null,'U','[Rn]5f¹⁴6d³7s²'],
+  ['Sg','Seaborgium',106,271,'transition',7,6,null,'U','[Rn]5f¹⁴6d⁴7s²'],
+  ['Bh','Bohrium',107,270,'transition',7,7,null,'U','[Rn]5f¹⁴6d⁵7s²'],
+  ['Hs','Hassium',108,277,'transition',7,8,null,'U','[Rn]5f¹⁴6d⁶7s²'],
+  ['Mt','Meitnerium',109,278,'unknown',7,9,null,'U','[Rn]5f¹⁴6d⁷7s²'],
+  ['Ds','Darmstadtium',110,281,'unknown',7,10,null,'U','[Rn]5f¹⁴6d⁸7s²'],
+  ['Rg','Roentgenium',111,282,'unknown',7,11,null,'U','[Rn]5f¹⁴6d⁹7s²'],
+  ['Cn','Copernicium',112,285,'transition',7,12,null,'U','[Rn]5f¹⁴6d¹⁰7s²'],
+  ['Nh','Nihonium',113,286,'unknown',7,13,null,'U','[Rn]5f¹⁴6d¹⁰7s²7p¹'],
+  ['Fl','Flerovium',114,289,'unknown',7,14,null,'U','[Rn]5f¹⁴6d¹⁰7s²7p²'],
+  ['Mc','Moscovium',115,290,'unknown',7,15,null,'U','[Rn]5f¹⁴6d¹⁰7s²7p³'],
+  ['Lv','Livermorium',116,293,'unknown',7,16,null,'U','[Rn]5f¹⁴6d¹⁰7s²7p⁴'],
+  ['Ts','Tennessine',117,294,'unknown',7,17,null,'U','[Rn]5f¹⁴6d¹⁰7s²7p⁵'],
+  ['Og','Oganesson',118,294,'unknown',7,18,null,'U','[Rn]5f¹⁴6d¹⁰7s²7p⁶'],
+];
+
+// Shell electron counts for Bohr model (simplified)
+function getShells(Z) {
+  const max = [2, 8, 18, 32, 32, 18, 8];
+  const shells = [];
+  let rem = Z;
+  for (let s of max) {
+    if (rem <= 0) break;
+    const fill = Math.min(rem, s);
+    shells.push(fill);
+    rem -= fill;
+  }
+  return shells;
+}
+
+// ─── BUILD GRID ───────────────────────────────────────────────────────────────
+const pt = document.getElementById('pt');
+
+// We'll place elements in a grid. Standard layout:
+// Row 1: H(1,1), He(1,18)
+// Rows 2-3: groups 1,2, then 13-18
+// Row 4-7: full rows with transitions
+// Rows 8-9: lanthanides / actinides (cols 3-17, starting row 8)
+// Gaps use empty divs
+
+// gridRow, gridCol for each element index
+// Use standard periodic table positioning
+const POS = {}; // Z -> [row, col]
+
+// Place by period/group
+ELEMENTS.forEach(el => {
+  const [sym,name,Z,mass,cat,period,group] = el;
+  if (group !== null) {
+    POS[Z] = [period, group];
+  }
+});
+
+// Lanthanides: Z 57-71, rows 8 (display), cols 3-17
+let lCol = 3;
+for (let Z = 57; Z <= 71; Z++) { POS[Z] = [8, lCol++]; }
+// Actinides: Z 89-103, rows 9, cols 3-17
+let aCol = 3;
+for (let Z = 89; Z <= 103; Z++) { POS[Z] = [9, aCol++]; }
+
+// Periods 6,7 series starters (La=57 at col 3, Ac=89 at col 3) — already handled
+// Period 6 group 3 is La, period 7 group 3 is Ac
+
+// Figure out grid bounds
+let maxRow = 0, maxCol = 0;
+Object.values(POS).forEach(([r,c]) => { maxRow = Math.max(maxRow, r); maxCol = Math.max(maxCol,c); });
+
+// Build a 10×18 grid (rows 1-9 + spacer row 7.5 for separation)
+const grid = Array.from({length: 10}, () => Array(18).fill(null));
+
+ELEMENTS.forEach(el => {
+  const Z = el[2];
+  if (POS[Z]) {
+    let [r, c] = POS[Z];
+    // Lanthanides/Actinides use rows 8,9 with a gap at row 7
+    // row 8 → grid row 9 (0-indexed: 8), row 9 → grid row 10 (0-indexed: 9)
+    // periods 1-7 → grid rows 1-7 (0-indexed 0-6)
+    // We need a blank row 8 for visual separation
+    let gr = r <= 7 ? r - 1 : r; // r=8→8, r=9→9
+    let gc = c - 1;
+    if (gr < 10 && gc < 18) grid[gr][gc] = el;
+  }
+});
+
+// Render
+pt.style.gridTemplateRows = `repeat(10, 52px)`;
+pt.style.gridTemplateColumns = `repeat(18, 52px)`;
+
+for (let r = 0; r < 10; r++) {
+  for (let c = 0; c < 18; c++) {
+    const el = grid[r][c];
+    const div = document.createElement('div');
+    if (!el) {
+      div.style.cssText = 'opacity:0;pointer-events:none;';
+      pt.appendChild(div);
+      continue;
+    }
+    const [sym,name,Z,mass,cat,period,group,en,state,config] = el;
+    const color = CATEGORIES[cat]?.color || '#fff';
+    div.className = 'el';
+    div.style.setProperty('--el-color', color);
+    div.innerHTML = `
+      <span class="num">${Z}</span>
+      <span class="sym">${sym}</span>
+      <span class="name">${name.substring(0,8)}</span>
+    `;
+    div.addEventListener('mouseenter', () => showPanel(el, color));
+    div.addEventListener('mouseleave', hidePanel);
+    pt.appendChild(div);
+  }
+}
+
+// ─── LEGEND ──────────────────────────────────────────────────────────────────
+const legend = document.getElementById('legend');
+Object.entries(CATEGORIES).forEach(([key, {label, color}]) => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${color}"></div><span>${label}</span>`;
+  legend.appendChild(item);
+});
+
+// ─── ATOM PANEL ──────────────────────────────────────────────────────────────
+const panel = document.getElementById('atom-panel');
+const canvas = document.getElementById('atom-canvas');
+const ctx = canvas.getContext('2d');
+let animFrame = null;
+let electrons = [];
+let currentColor = '#00c8ff';
+
+function showPanel(el, color) {
+  const [sym,name,Z,mass,cat,period,group,en,state,config] = el;
+  panel.style.setProperty('--panel-color', color);
+  document.getElementById('p-sym').textContent = sym;
+  document.getElementById('p-name').textContent = name;
+  document.getElementById('p-num').textContent = `Z = ${Z}  ·  A ≈ ${Math.round(mass)}`;
+  document.getElementById('p-mass').textContent = mass + ' u';
+  document.getElementById('p-config').textContent = config || '—';
+  document.getElementById('p-en').textContent = en !== null ? en : '—';
+  document.getElementById('p-state').textContent = state === 'G' ? 'Gas' : state === 'L' ? 'Liquid' : state === 'S' ? 'Solid' : 'Unknown';
+  document.getElementById('p-cat').textContent = CATEGORIES[cat]?.label || cat;
+  panel.classList.add('visible');
+  currentColor = color;
+  startAtomAnim(Z, color);
+}
+
+function hidePanel() {
+  panel.classList.remove('visible');
+  if (animFrame) cancelAnimationFrame(animFrame);
+}
+
+function startAtomAnim(Z, color) {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  const shells = getShells(Z);
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const maxR = 78;
+  const radii = shells.map((_, i) => 18 + (i * (maxR / shells.length)));
+
+  electrons = [];
+  shells.forEach((count, si) => {
+    const r = radii[si];
+    for (let ei = 0; ei < count; ei++) {
+      const angle = (2 * Math.PI / count) * ei;
+      const speed = 0.008 + (si * 0.003) * (si % 2 === 0 ? 1 : -1);
+      electrons.push({ shell: si, angle, r, speed: speed * (si % 2 === 0 ? 1 : -1) });
+    }
+  });
+
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw shells — fine, sparse dashes
+    shells.forEach((_, si) => {
+      const r = radii[si];
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = color + '28';
+      ctx.lineWidth = 0.6;
+      ctx.setLineDash([1.5, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
+    // Nucleus — small, crisp, no bloom
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color + 'cc';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8dcc8';
+    ctx.fill();
+
+    // Update and draw electrons — clean dots, no glow
+    electrons.forEach(e => {
+      e.angle += e.speed;
+      const ex = cx + e.r * Math.cos(e.angle);
+      const ey = cy + e.r * Math.sin(e.angle);
+
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = color + 'dd';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ex, ey, 1, 0, Math.PI * 2);
+      ctx.fillStyle = '#e8dcc8';
+      ctx.fill();
+    });
+
+    animFrame = requestAnimationFrame(draw);
+  }
+
+  animFrame = requestAnimationFrame(draw);
+}
+</script>
+</body>
+</html>
