@@ -9,12 +9,12 @@
   :root {
     --bg: #f5f2ec;
     --panel-bg: #ebe8e2;
-    --gold: #8b7355;
-    --gold-light: #a08060;
-    --gold-dim: #6b5545;
-    --text: #2a2620;
-    --text-dim: #6b6050;
-    --text-bright: #3d3830;
+    --gold: #6b5345;
+    --gold-light: #806040;
+    --gold-dim: #4b3525;
+    --text: #1a1610;
+    --text-dim: #4b4030;
+    --text-bright: #2d2820;
     --border-subtle: rgba(107, 85, 69, 0.12);
     /* Brighter category palette — readable but still refined */
     --alkali: #e07a7a;
@@ -150,7 +150,7 @@
     font-family: 'Cormorant Garamond', serif;
     font-size: 6px;
     letter-spacing: 0.06em;
-    color: rgba(107,85,69,0.5);
+    color: rgba(60,45,35,0.75);
     line-height: 1;
     margin-top: 1px;
   }
@@ -170,7 +170,7 @@
     border: 1px solid rgba(107,85,69,0.2);
     border-radius: 1px;
     padding: 22px 20px;
-    pointer-events: none;
+    pointer-events: auto;
     opacity: 0;
     transition: opacity 0.25s ease;
     z-index: 100;
@@ -567,20 +567,11 @@ for (let r = 0; r < 10; r++) {
       <span class="sym">${sym}</span>
       <span class="name">${name.substring(0,8)}</span>
     `;
+    div.addEventListener('click', () => showPanel(el, color));
     div.addEventListener('mouseenter', () => showPanel(el, color));
-    div.addEventListener('mouseleave', hidePanel);
     pt.appendChild(div);
   }
 }
-
-// ─── LEGEND ──────────────────────────────────────────────────────────────────
-const legend = document.getElementById('legend');
-Object.entries(CATEGORIES).forEach(([key, {label, color}]) => {
-  const item = document.createElement('div');
-  item.className = 'legend-item';
-  item.innerHTML = `<div class="legend-dot" style="background:${color}"></div><span>${label}</span>`;
-  legend.appendChild(item);
-});
 
 // ─── ATOM PANEL ──────────────────────────────────────────────────────────────
 const panel = document.getElementById('atom-panel');
@@ -610,6 +601,13 @@ function hidePanel() {
   panel.classList.remove('visible');
   if (animFrame) cancelAnimationFrame(animFrame);
 }
+
+// Close panel when clicking outside elements
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.el') && !e.target.closest('#atom-panel')) {
+    hidePanel();
+  }
+});
 
 function startAtomAnim(Z, color) {
   if (animFrame) cancelAnimationFrame(animFrame);
