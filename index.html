@@ -7,15 +7,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Cormorant+SC:wght@300;400;500&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d0d0b;
-    --panel-bg: #111110;
-    --gold: #b8965a;
-    --gold-light: #d4af72;
-    --gold-dim: #6b5535;
-    --text: #d8cfc0;
-    --text-dim: #7a7060;
-    --text-bright: #f0e6d2;
-    --border-subtle: rgba(184, 150, 90, 0.1);
+    --bg: #f5f2ec;
+    --panel-bg: #ebe8e2;
+    --gold: #8b7355;
+    --gold-light: #a08060;
+    --gold-dim: #6b5545;
+    --text: #2a2620;
+    --text-dim: #6b6050;
+    --text-bright: #3d3830;
+    --border-subtle: rgba(107, 85, 69, 0.12);
     /* Brighter category palette — readable but still refined */
     --alkali: #e07a7a;
     --alkaline: #e0a060;
@@ -39,8 +39,8 @@
     min-height: 100vh;
     overflow-x: auto;
     background-image:
-      radial-gradient(ellipse at 30% 10%, rgba(184,150,90,0.025) 0%, transparent 55%),
-      radial-gradient(ellipse at 75% 85%, rgba(184,150,90,0.015) 0%, transparent 50%);
+      radial-gradient(ellipse at 30% 10%, rgba(107,85,69,0.04) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 85%, rgba(107,85,69,0.025) 0%, transparent 50%);
   }
 
   header {
@@ -94,7 +94,7 @@
   /* ELEMENT CELLS */
   .el {
     position: relative;
-    border: 1px solid rgba(184,150,90,0.07);
+    border: 1px solid rgba(107,85,69,0.15);
     border-radius: 1px;
     cursor: pointer;
     display: flex;
@@ -102,7 +102,7 @@
     align-items: center;
     justify-content: center;
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-    background: rgba(17,16,14,0.92);
+    background: rgba(255,252,248,0.92);
     overflow: hidden;
   }
 
@@ -119,9 +119,9 @@
   .el:hover {
     transform: scale(1.13);
     z-index: 10;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.6), 0 0 0 1px var(--el-color, var(--gold));
+    box-shadow: 0 2px 16px rgba(42,38,32,0.15), 0 0 0 1px var(--el-color, var(--gold));
     border-color: var(--el-color, var(--gold));
-    background: rgba(22,20,16,0.98);
+    background: rgba(255,252,248,0.98);
   }
 
   .el .num {
@@ -150,14 +150,14 @@
     font-family: 'Cormorant Garamond', serif;
     font-size: 6px;
     letter-spacing: 0.06em;
-    color: rgba(180,165,140,0.4);
+    color: rgba(107,85,69,0.5);
     line-height: 1;
     margin-top: 1px;
   }
 
   /* Color tints per category */
-  .el::before { background: var(--el-color, #b8965a); }
-  .el { border-color: rgba(184,150,90,0.07); }
+  .el::before { background: var(--el-color, #8b7355); }
+  .el { border-color: rgba(107,85,69,0.15); }
 
   /* TOOLTIP / ATOM DISPLAY */
   #atom-panel {
@@ -166,15 +166,15 @@
     right: 28px;
     transform: translateY(-50%);
     width: 258px;
-    background: rgba(13,13,11,0.98);
-    border: 1px solid rgba(184,150,90,0.2);
+    background: rgba(245,242,236,0.98);
+    border: 1px solid rgba(107,85,69,0.2);
     border-radius: 1px;
     padding: 22px 20px;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.25s ease;
     z-index: 100;
-    box-shadow: 0 8px 48px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(184,150,90,0.04);
+    box-shadow: 0 8px 48px rgba(42,38,32,0.15), inset 0 0 0 1px rgba(107,85,69,0.06);
   }
 
   #atom-panel.visible { opacity: 1; }
@@ -214,7 +214,7 @@
 
   .divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(184,150,90,0.25), transparent);
+    background: linear-gradient(90deg, transparent, rgba(107,85,69,0.25), transparent);
     margin: 10px 0;
   }
 
@@ -235,7 +235,7 @@
     align-items: baseline;
     font-size: 11px;
     padding: 4px 0;
-    border-bottom: 1px solid rgba(184,150,90,0.06);
+    border-bottom: 1px solid rgba(107,85,69,0.08);
   }
   .stat-row .label {
     font-family: 'Cormorant SC', serif;
@@ -260,7 +260,7 @@
     letter-spacing: 0.3em;
     text-transform: uppercase;
     padding: 4px 10px;
-    border: 1px solid rgba(184,150,90,0.2);
+    border: 1px solid rgba(107,85,69,0.2);
     color: var(--gold);
     opacity: 0.85;
   }
@@ -561,7 +561,7 @@ for (let r = 0; r < 10; r++) {
       continue;
     }
     const [sym,name,Z,mass,cat,period,group,en,state,config] = el;
-    const color = CATEGORIES[cat]?.color || '#fff';
+    const color = CATEGORIES[cat]?.color || '#8b7355';
     div.className = 'el';
     div.style.setProperty('--el-color', color);
     div.innerHTML = `
@@ -590,7 +590,7 @@ const canvas = document.getElementById('atom-canvas');
 const ctx = canvas.getContext('2d');
 let animFrame = null;
 let electrons = [];
-let currentColor = '#00c8ff';
+let currentColor = '#8b7355';
 
 function showPanel(el, color) {
   const [sym,name,Z,mass,cat,period,group,en,state,config] = el;
@@ -653,7 +653,7 @@ function startAtomAnim(Z, color) {
     ctx.fill();
     ctx.beginPath();
     ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#e8dcc8';
+    ctx.fillStyle = '#5c5040';
     ctx.fill();
 
     // Update and draw electrons — clean dots, no glow
@@ -668,7 +668,7 @@ function startAtomAnim(Z, color) {
       ctx.fill();
       ctx.beginPath();
       ctx.arc(ex, ey, 1, 0, Math.PI * 2);
-      ctx.fillStyle = '#e8dcc8';
+      ctx.fillStyle = '#5c5040';
       ctx.fill();
     });
 
